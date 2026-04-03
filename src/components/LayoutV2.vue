@@ -76,6 +76,10 @@
         >
           <!-- Dynamic Sub Menus based on activeTopMenu -->
           <template v-if="activeTopMenu === '商城'">
+  <el-menu-item index="/home">
+    <el-icon><HomeFilled /></el-icon>
+    <span>首页</span>
+  </el-menu-item>
   <el-sub-menu index="/product">
     <template #title>
       <el-icon><Goods /></el-icon>
@@ -1230,7 +1234,7 @@ const routeMetaMap = {
     "title": "首页",
     "topMenu": "商城"
   },
-  "/_home_": {
+  "/_home": {
     "title": "首页",
     "topMenu": "商城"
   },
