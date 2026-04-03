@@ -44,16 +44,87 @@
         </el-table-column>
       </el-table>
     </el-card>
+
+    <!-- Menu Form Dialog -->
+    <el-dialog :title="dialogTitle" v-model="dialogVisible" width="600px">
+      <el-form :model="form" ref="formRef" :rules="rules" label-width="100px">
+        <el-form-item label="上级菜单">
+          <el-tree-select
+            v-model="form.pid"
+            :data="menuTreeOptions"
+            :props="{ label: 'menuName', value: 'id', children: 'children' }"
+            check-strictly
+            placeholder="请选择上级菜单"
+            style="width: 100%"
+            clearable
+          />
+        </el-form-item>
+        <el-form-item label="菜单类型" prop="authType">
+          <el-radio-group v-model="form.authType">
+            <el-radio :label="1">菜单</el-radio>
+            <el-radio :label="2">按钮/功能</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item label="菜单名称" prop="menuName">
+          <el-input v-model="form.menuName" placeholder="请输入菜单名称"></el-input>
+        </el-form-item>
+        <el-form-item label="图标" v-if="form.authType === 1">
+          <el-input v-model="form.icon" placeholder="请输入Element Plus图标名称，如：Setting"></el-input>
+        </el-form-item>
+        <el-form-item label="路由路径" prop="path" v-if="form.authType === 1">
+          <el-input v-model="form.path" placeholder="请输入路由路径，如：/system"></el-input>
+        </el-form-item>
+        <el-form-item label="权限标识" v-if="form.authType === 2">
+          <el-input v-model="form.api_url" placeholder="请输入后端接口权限标识，如：/api/admin/user/add"></el-input>
+        </el-form-item>
+        <el-form-item label="排序">
+          <el-input-number v-model="form.sort" :min="0" :max="9999" controls-position="right"></el-input-number>
+        </el-form-item>
+        <el-form-item label="是否显示" v-if="form.authType === 1">
+          <el-switch v-model="form.isShow" :active-value="1" :inactive-value="0"></el-switch>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="dialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="submitForm">确定</el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import axios from 'axios'
 
 const menuTree = ref([])
 const loading = ref(false)
+const dialogVisible = ref(false)
+const dialogTitle = ref('')
+const formRef = ref(null)
+
+const form = ref({
+  id: null,
+  pid: 0,
+  authType: 1,
+  menuName: '',
+  icon: '',
+  path: '',
+  api_url: '',
+  sort: 0,
+  isShow: 1
+})
+
+const rules = {
+  menuName: [{ required: true, message: '请输入菜单名称', trigger: 'blur' }],
+  path: [{ required: true, message: '请输入路由路径', trigger: 'blur' }]
+}
+
+const menuTreeOptions = computed(() => {
+  return [{ id: 0, menuName: '顶级菜单' }, ...menuTree.value]
+})
 
 const buildTree = (data, pid = 0) => {
   const tree = []
@@ -85,11 +156,42 @@ const fetchMenus = async () => {
 }
 
 const handleAdd = (parent) => {
-  ElMessage.info('暂未实现详细弹窗表单')
+  form.value = {
+    id: null,
+    pid: parent ? parent.id : 0,
+    authType: 1,
+    menuName: '',
+    icon: '',
+    path: '',
+    api_url: '',
+    sort: 0,
+    isShow: 1
+  }
+  dialogTitle.value = parent ? '新增子菜单' : '添加顶级菜单'
+  dialogVisible.value = true
 }
 
 const handleEdit = (row) => {
-  ElMessage.info('暂未实现详细弹窗表单')
+  form.value = { ...row }
+  dialogTitle.value = '编辑菜单'
+  dialogVisible.value = true
+}
+
+const submitForm = () => {
+  formRef.value.validate(async (valid) => {
+    if (valid) {
+      try {
+        const res = await axios.post('/api/admin/system/menus/save', form.value)
+        if (res.data.code === 200) {
+          ElMessage.success('保存成功')
+          dialogVisible.value = false
+          fetchMenus()
+        }
+      } catch (error) {
+        ElMessage.error('保存失败')
+      }
+    }
+  })
 }
 
 const handleStatusChange = async (row) => {
