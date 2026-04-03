@@ -1,35 +1,20 @@
 <template>
   <div class="category-params-container">
-    <el-card class="box-card" :body-style="{ padding: '0px', height: 'calc(100vh - 150px)' }">
-      <el-container style="height: 100%;">
-        <el-aside width="200px" style="border-right: 1px solid #e6e6e6; background-color: #fff;">
-          <el-menu
-            :default-active="activeMenu"
-            class="el-menu-vertical-demo"
-            @select="handleSelect"
-            style="border-right: none;"
-          >
-            <el-menu-item index="brand">
-              <span>商品品牌</span>
-            </el-menu-item>
-            <el-menu-item index="unit">
-              <span>商品单位</span>
-            </el-menu-item>
-            <el-menu-item index="specs">
-              <span>商品参数</span>
-            </el-menu-item>
-            <el-menu-item index="ensure">
-              <span>保障服务</span>
-            </el-menu-item>
-          </el-menu>
-        </el-aside>
-        <el-main style="padding: 20px; background-color: #f5f7f9;">
-          <ProductProductBrand v-if="activeMenu === 'brand'" />
-          <ProductUnitlist v-if="activeMenu === 'unit'" />
-          <ProductSpecs v-if="activeMenu === 'specs'" />
-          <ProductEnsureCreate v-if="activeMenu === 'ensure'" />
-        </el-main>
-      </el-container>
+    <el-card shadow="never" class="box-card" :body-style="{ padding: '0' }">
+      <div class="tabs-header">
+        <el-tabs v-model="activeTab" class="custom-tabs" @tab-click="handleTabClick">
+          <el-tab-pane label="商品品牌" name="brand"></el-tab-pane>
+          <el-tab-pane label="商品单位" name="unit"></el-tab-pane>
+          <el-tab-pane label="商品参数" name="specs"></el-tab-pane>
+          <el-tab-pane label="保障服务" name="ensure"></el-tab-pane>
+        </el-tabs>
+      </div>
+      <div class="tabs-content">
+        <ProductProductBrand v-if="activeTab === 'brand'" />
+        <ProductUnitlist v-if="activeTab === 'unit'" />
+        <ProductSpecs v-if="activeTab === 'specs'" />
+        <ProductEnsureCreate v-if="activeTab === 'ensure'" />
+      </div>
     </el-card>
   </div>
 </template>
@@ -41,19 +26,38 @@ import ProductUnitlist from './ProductUnitlist.vue'
 import ProductSpecs from './ProductSpecs.vue'
 import ProductEnsureCreate from './ProductEnsureCreate.vue'
 
-const activeMenu = ref('brand')
+const activeTab = ref('brand')
 
-const handleSelect = (key) => {
-  activeMenu.value = key
+const handleTabClick = (tab) => {
+  // 
 }
 </script>
 
 <style scoped>
 .category-params-container {
-  padding: 0;
+  padding: 10px;
 }
-:deep(.el-main .el-card) {
-  border: none;
-  box-shadow: none;
+.box-card {
+  min-height: calc(100vh - 120px);
+}
+.tabs-header {
+  padding: 0 20px;
+  border-bottom: 1px solid #e4e7ed;
+  background: #fff;
+}
+:deep(.el-tabs__header) {
+  margin: 0;
+  border-bottom: none;
+}
+.tabs-content {
+  padding: 0px;
+}
+/* Hide the inner card headers of the embedded components since we have tabs now */
+:deep(.el-card__header) {
+  display: none !important;
+}
+:deep(.el-card) {
+  border: none !important;
+  box-shadow: none !important;
 }
 </style>

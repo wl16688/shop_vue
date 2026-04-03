@@ -101,7 +101,7 @@
       <el-icon><Goods /></el-icon>
       <span>商品标签</span>
     </el-menu-item>
-    <el-sub-menu index="/product_category_params_menu">
+    <el-sub-menu index="/product_product_brand">
       <template #title>
         <el-icon><Management /></el-icon>
         <span>类目参数</span>
@@ -119,8 +119,8 @@
         <span>商品参数</span>
       </el-menu-item>
       <el-menu-item index="/product_ensure">
-          <el-icon><CreditCard /></el-icon>
-          <span>保障服务</span>
+        <el-icon><CreditCard /></el-icon>
+        <span>保障服务</span>
         </el-menu-item>
     </el-sub-menu>
     <el-menu-item index="/setting_system_create">
