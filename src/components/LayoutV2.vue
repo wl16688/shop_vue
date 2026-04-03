@@ -101,10 +101,28 @@
       <el-icon><Goods /></el-icon>
       <span>商品标签</span>
     </el-menu-item>
-    <el-menu-item index="/product_category_params">
-      <el-icon><Management /></el-icon>
-      <span>类目参数</span>
-    </el-menu-item>
+    <el-sub-menu index="/product_category_params_menu">
+      <template #title>
+        <el-icon><Management /></el-icon>
+        <span>类目参数</span>
+      </template>
+      <el-menu-item index="/product_product_brand">
+        <el-icon><Goods /></el-icon>
+        <span>商品品牌</span>
+      </el-menu-item>
+      <el-menu-item index="/product_unitList">
+        <el-icon><Goods /></el-icon>
+        <span>商品单位</span>
+      </el-menu-item>
+      <el-menu-item index="/product_specs">
+        <el-icon><Goods /></el-icon>
+        <span>商品参数</span>
+      </el-menu-item>
+      <el-menu-item index="/product_ensure">
+          <el-icon><CreditCard /></el-icon>
+          <span>保障服务</span>
+        </el-menu-item>
+    </el-sub-menu>
     <el-menu-item index="/setting_system_create">
       <el-icon><OfficeBuilding /></el-icon>
       <span>系统表单</span>
