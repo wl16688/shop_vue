@@ -18,6 +18,7 @@ const routes = [
       { path: 'product_product_attr', name: 'ProductProductAttr', component: () => import('../components/generated/ProductProductAttr.vue') },
       { path: 'product_label', name: 'ProductLabel', component: () => import('../components/generated/ProductLabel.vue') },
       { path: 'product_product_brand', name: 'ProductProductBrand', component: () => import('../components/generated/ProductProductBrand.vue') },
+      { path: 'product_category_params', name: 'ProductCategoryParams', component: () => import('../components/generated/ProductCategoryParams.vue') },
       { path: 'product_unitList', name: 'ProductUnitlist', component: () => import('../components/generated/ProductUnitlist.vue') },
       { path: 'product_specs', name: 'ProductSpecs', component: () => import('../components/generated/ProductSpecs.vue') },
       { path: 'product_ensure_create', name: 'ProductEnsureCreate', component: () => import('../components/generated/ProductEnsureCreate.vue') },

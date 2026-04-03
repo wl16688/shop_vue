@@ -3,7 +3,7 @@
     <el-card>
       <template #header>
         <div class="card-header">
-          <span>添加商品参数模版</span>
+          <span>保障服务</span>
           
         </div>
       </template>
@@ -64,7 +64,7 @@
       </template>
     </el-dialog>
 
-    <el-dialog title="添加商品参数模版详情" v-model="detailVisible" width="500px">
+    <el-dialog title="保障服务详情" v-model="detailVisible" width="500px">
       <el-descriptions border :column="1">
         <el-descriptions-item label="ID">{{ detailData.id }}</el-descriptions-item>
         <el-descriptions-item label="名称">{{ detailData.name }}</el-descriptions-item>
@@ -138,7 +138,7 @@ const handleSelectionChange = (val) => {
 }
 
 const handleAdd = () => {
-  dialogTitle.value = '添加添加商品参数模版'
+  dialogTitle.value = '添加保障服务'
   form.id = null
   form.name = ''
   form.status = 1
@@ -147,7 +147,7 @@ const handleAdd = () => {
 }
 
 const handleEdit = (row) => {
-  dialogTitle.value = '编辑添加商品参数模版'
+  dialogTitle.value = '编辑保障服务'
   form.id = row.id
   form.name = row.name
   form.status = row.status
@@ -233,7 +233,7 @@ const handleExport = async () => {
     const url = window.URL.createObjectURL(new Blob([res.data]))
     const link = document.createElement('a')
     link.href = url
-    link.setAttribute('download', '添加商品参数模版_export.csv')
+    link.setAttribute('download', '保障服务_export.csv')
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
