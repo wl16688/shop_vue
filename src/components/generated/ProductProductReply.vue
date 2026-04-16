@@ -6,45 +6,43 @@
           <el-input v-model="searchQuery.keyword" placeholder="商品名称" clearable style="width: 200px;"></el-input>
         </el-form-item>
         <el-form-item label="回复状态：">
-          <el-select v-model="searchQuery.is_reply" placeholder="全部" clearable style="width: 150px;">
-            <el-option label="已回复" value="1"></el-option>
-            <el-option label="待回复" value="0"></el-option>
+          <el-select v-model="searchQuery.isReply" placeholder="全部" clearable style="width: 150px;">
+            <el-option label="全部" :value="-1" />
+            <el-option label="已回复" :value="1" />
+            <el-option label="未回复" :value="0" />
           </el-select>
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="fetchData">查询</el-button>
         </el-form-item>
       </el-form>
-            <div style="margin-bottom: 15px;">
+      <div style="margin-bottom: 15px;">
         <el-button type="danger" plain @click="handleBatchDelete">批量删除</el-button>
       </div>
       <el-table :data="tableData" style="width: 100%" v-loading="loading" @selection-change="handleSelectionChange">
         <el-table-column type="selection" width="55" align="center" />
         <el-table-column prop="id" label="ID" width="80" align="center" />
-        <el-table-column prop="product_info" label="商品信息" min-width="200" align="left">
+        <el-table-column prop="productId" label="商品ID" width="100" align="center" />
+        <el-table-column prop="nickname" label="用户名称" width="120" align="center" />
+        <el-table-column prop="replyScore" label="综合评分" width="150" align="center">
           <template #default="scope">
-            <div style="display: flex; align-items: center;">
-              <el-image style="width: 40px; height: 40px; margin-right: 10px; border-radius: 4px;" :src="scope.row.image" fit="cover" />
-              <span style="font-size: 12px; line-height: 1.2;">{{ scope.row.store_name }}</span>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column prop="user_name" label="用户名称" width="120" align="center" />
-        <el-table-column prop="score" label="综合评分" width="150" align="center">
-          <template #default="scope">
-            <el-rate v-model="scope.row.score" disabled show-score text-color="#ff9900" score-template="{value}"></el-rate>
+            <el-rate v-model="scope.row.replyScore" disabled show-score text-color="#ff9900" />
           </template>
         </el-table-column>
         <el-table-column prop="comment" label="评价内容" min-width="200" show-overflow-tooltip />
-        <el-table-column prop="is_reply" label="回复状态" width="100" align="center">
+        <el-table-column prop="isReply" label="回复状态" width="100" align="center">
           <template #default="scope">
-            <el-tag :type="scope.row.is_reply === 1 ? 'success' : 'info'" size="small">{{ scope.row.is_reply === 1 ? '已回复' : '待回复' }}</el-tag>
+            <el-tag :type="scope.row.isReply === 1 ? 'success' : 'info'">{{ scope.row.isReply === 1 ? '已回复' : '未回复' }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="create_time" label="评价时间" width="160" align="center" />
+        <el-table-column prop="addTime" label="评价时间" width="160" align="center">
+          <template #default="scope">
+            {{ formatTime(scope.row.addTime) }}
+          </template>
+        </el-table-column>
         <el-table-column label="操作" width="120" align="center" fixed="right">
           <template #default="scope">
-            <el-button size="small" type="primary" link @click="handleEdit(scope.row)">回复</el-button>
+            <el-button size="small" type="primary" link @click="handleDetail(scope.row)">回复</el-button>
             <el-button size="small" type="danger" link @click="handleDelete(scope.row)">删除</el-button>
           </template>
         </el-table-column>
@@ -76,17 +74,15 @@
 
     <el-dialog title="商品评论详情" v-model="detailVisible" width="500px">
       <el-descriptions border :column="1">
-        <el-descriptions-item label="ID">{{ detailData.id }}</el-descriptions-item>
-        <el-descriptions-item label="名称">{{ detailData.name }}</el-descriptions-item>
-        <el-descriptions-item label="状态">
-          <el-tag :type="detailData.status === 1 ? 'success' : 'danger'">{{ detailData.status === 1 ? '启用' : '禁用' }}</el-tag>
+        <el-descriptions-item label="评价内容">{{ detailData.comment }}</el-descriptions-item>
+        <el-descriptions-item label="商家回复">
+          <el-input type="textarea" v-model="form.merchantReplyContent" placeholder="请输入商家回复内容" :rows="4"></el-input>
         </el-descriptions-item>
-        <el-descriptions-item label="创建时间">{{ detailData.createTime }}</el-descriptions-item>
-        <el-descriptions-item label="备注">{{ detailData.remark || '无' }}</el-descriptions-item>
       </el-descriptions>
       <template #footer>
         <span class="dialog-footer">
-          <el-button @click="detailVisible = false">关闭</el-button>
+          <el-button @click="detailVisible = false">取消</el-button>
+          <el-button type="primary" @click="submitReply">确认回复</el-button>
         </span>
       </template>
     </el-dialog>
@@ -109,20 +105,27 @@ const detailData = ref({})
 const selectedRows = ref([])
 
 const searchQuery = reactive({
-  keyword: ''
+  keyword: '',
+  isReply: -1,
+  page: 1,
+  limit: 10
 })
 
 const form = reactive({
   id: null,
-  name: '',
-  status: 1,
-  remark: ''
+  merchantReplyContent: ''
 })
+
+const formatTime = (timestamp) => {
+  if (!timestamp) return ''
+  const date = new Date(timestamp * 1000)
+  return date.toLocaleString('zh-CN', { hour12: false }).replace(/\//g, '-')
+}
 
 const fetchData = async () => {
   loading.value = true
   try {
-    const res = await axios.get('/api/admin/extend/product_product_reply/list', { params: searchQuery })
+    const res = await axios.get('/api/admin/store/product/reply/list', { params: searchQuery })
     if (res.data.code === 200) {
       tableData.value = res.data.data.records || res.data.data
       total.value = res.data.data.total || res.data.data.length
@@ -165,27 +168,23 @@ const handleEdit = (row) => {
   dialogVisible.value = true
 }
 
-const handleDetail = async (row) => {
-  try {
-    const res = await axios.get(`/api/admin/extend/product_product_reply/detail?id=${row.id}`)
-    if (res.data.code === 200) {
-      detailData.value = res.data.data
-    } else {
-      detailData.value = { ...row }
-    }
-  } catch(e) {
-    detailData.value = { ...row }
-  }
+const handleDetail = (row) => {
+  detailData.value = { ...row }
+  form.id = row.id
+  form.merchantReplyContent = row.merchantReplyContent || ''
   detailVisible.value = true
 }
 
-const handleStatusChange = async (row) => {
+const submitReply = async () => {
+  if (!form.merchantReplyContent) return ElMessage.warning('回复内容不能为空')
   try {
-    const res = await axios.post(`/api/admin/extend/product_product_reply/save`, row)
+    const res = await axios.post(`/api/admin/store/product/reply/set_reply`, form)
     if (res.data.code === 200) {
-      ElMessage.success('状态修改成功')
+      ElMessage.success('回复成功')
+      detailVisible.value = false
+      fetchData()
     } else {
-      ElMessage.error(res.data.msg || '状态修改失败')
+      ElMessage.error(res.data.msg || '回复失败')
     }
   } catch(e) {
     ElMessage.error('网络错误')
@@ -199,7 +198,7 @@ const handleDelete = (row) => {
     type: 'warning',
   }).then(async () => {
     try {
-      const res = await axios.post(`/api/admin/extend/product_product_reply/delete`, { id: row.id })
+      const res = await axios.post(`/api/admin/store/product/reply/delete`, { id: row.id })
       if (res.data.code === 200) {
         ElMessage.success(res.data.msg || '删除成功')
         fetchData()
@@ -223,7 +222,7 @@ const handleBatchDelete = () => {
   }).then(async () => {
     const ids = selectedRows.value.map(item => item.id)
     try {
-      const res = await axios.post(`/api/admin/extend/product_product_reply/delete`, { ids })
+      const res = await axios.post(`/api/admin/store/product/reply/delete`, { ids })
       if (res.data.code === 200) {
         ElMessage.success('批量删除成功')
         fetchData()
@@ -236,25 +235,9 @@ const handleBatchDelete = () => {
   }).catch(() => {})
 }
 
-const handleExport = async () => {
-  ElMessage.success('开始导出数据...')
-  try {
-    const res = await axios.get(`/api/admin/extend/product_product_reply/export`, { responseType: 'blob' })
-    const url = window.URL.createObjectURL(new Blob([res.data]))
-    const link = document.createElement('a')
-    link.href = url
-    link.setAttribute('download', '商品评论_export.csv')
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-  } catch(e) {
-    ElMessage.error('导出失败')
-  }
-}
-
 const submitForm = async () => {
   try {
-    const res = await axios.post(`/api/admin/extend/product_product_reply/save`, form)
+    const res = await axios.post(`/api/admin/store/product/reply/save`, form)
     if (res.data.code === 200) {
       ElMessage.success(res.data.msg || '保存成功')
       dialogVisible.value = false

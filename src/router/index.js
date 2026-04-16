@@ -51,6 +51,7 @@ const routes = [
       { path: 'user_levelSet', name: 'UserLevelset', component: () => import('../components/generated/UserLevelset.vue') },
       { path: 'user_registerSet', name: 'UserRegisterset', component: () => import('../components/generated/UserRegisterset.vue') },
       { path: 'user_memberGift', name: 'UserMembergift', component: () => import('../components/generated/UserMembergift.vue') },
+      { path: 'marketing_store_coupon_issue_index', name: 'MarketingStoreCouponIssueIndex', component: () => import('../components/generated/MarketingStoreCouponIssueIndex.vue') },
       { path: 'marketing_store_coupon_issue_create', name: 'MarketingStoreCouponIssueCreate', component: () => import('../components/generated/MarketingStoreCouponIssueCreate.vue') },
       { path: 'marketing_store_coupon_user_index', name: 'MarketingStoreCouponUserIndex', component: () => import('../components/generated/MarketingStoreCouponUserIndex.vue') },
       { path: 'marketing_integral_system_config', name: 'MarketingIntegralSystemConfig', component: () => import('../components/generated/MarketingIntegralSystemConfig.vue') },

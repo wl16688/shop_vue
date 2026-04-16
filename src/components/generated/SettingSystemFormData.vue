@@ -13,18 +13,27 @@
       <div style="margin-bottom: 15px;">
         <el-button type="primary" plain @click="handleAdd">新增</el-button>
         <el-button type="danger" plain @click="handleBatchDelete">批量删除</el-button>
-        <el-button type="warning" plain @click="handleExport">导出数据</el-button>
       </div>
       <el-table :data="tableData" style="width: 100%" v-loading="loading" @selection-change="handleSelectionChange">
         <el-table-column type="selection" width="55" />
-        <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="name" label="名称" />
-        <el-table-column prop="status" label="状态">
+        <el-table-column prop="id" label="ID" width="80" align="center" />
+        <el-table-column prop="name" label="表单名称" min-width="120" align="center" />
+        <el-table-column prop="coverImage" label="封面图" width="100" align="center">
+          <template #default="scope">
+            <el-image style="width: 40px; height: 40px" :src="scope.row.coverImage" fit="contain" v-if="scope.row.coverImage" />
+            <span v-else>无</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="status" label="是否使用" width="100" align="center">
           <template #default="scope">
             <el-switch v-model="scope.row.status" :active-value="1" :inactive-value="0" @change="handleStatusChange(scope.row)" />
           </template>
         </el-table-column>
-        <el-table-column prop="createTime" label="创建时间" />
+        <el-table-column prop="addTime" label="创建时间" min-width="160" align="center">
+          <template #default="scope">
+            {{ formatTime(scope.row.addTime) }}
+          </template>
+        </el-table-column>
         <el-table-column label="操作" width="250" fixed="right">
           <template #default="scope">
             <el-button size="small" type="primary" link @click="handleEdit(scope.row)">编辑</el-button>
@@ -40,14 +49,17 @@
 
     <el-dialog :title="dialogTitle" v-model="dialogVisible" width="600px">
       <el-form label-width="100px" :model="form" ref="formRef">
-        <el-form-item label="名称" required>
-          <el-input v-model="form.name" placeholder="请输入名称"></el-input>
+        <el-form-item label="表单名称" required>
+          <el-input v-model="form.name" placeholder="请输入表单名称"></el-input>
+        </el-form-item>
+        <el-form-item label="封面图">
+          <UploadImage v-model="form.coverImage" />
+        </el-form-item>
+        <el-form-item label="表单数据">
+          <el-input type="textarea" :rows="4" v-model="form.value" placeholder="请输入表单JSON数据"></el-input>
         </el-form-item>
         <el-form-item label="状态">
           <el-switch v-model="form.status" :active-value="1" :inactive-value="0" />
-        </el-form-item>
-        <el-form-item label="备注">
-          <el-input type="textarea" v-model="form.remark" placeholder="请输入备注"></el-input>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -61,12 +73,18 @@
     <el-dialog title="系统表单收集数据详情" v-model="detailVisible" width="500px">
       <el-descriptions border :column="1">
         <el-descriptions-item label="ID">{{ detailData.id }}</el-descriptions-item>
-        <el-descriptions-item label="名称">{{ detailData.name }}</el-descriptions-item>
-        <el-descriptions-item label="状态">
+        <el-descriptions-item label="表单名称">{{ detailData.name }}</el-descriptions-item>
+        <el-descriptions-item label="封面图">
+          <el-image style="width: 40px; height: 40px" :src="detailData.coverImage" fit="contain" v-if="detailData.coverImage" />
+          <span v-else>无</span>
+        </el-descriptions-item>
+        <el-descriptions-item label="是否使用">
           <el-tag :type="detailData.status === 1 ? 'success' : 'danger'">{{ detailData.status === 1 ? '启用' : '禁用' }}</el-tag>
         </el-descriptions-item>
-        <el-descriptions-item label="创建时间">{{ detailData.createTime }}</el-descriptions-item>
-        <el-descriptions-item label="备注">{{ detailData.remark || '无' }}</el-descriptions-item>
+        <el-descriptions-item label="表单数据">
+          <pre style="white-space: pre-wrap; word-wrap: break-word;">{{ detailData.value }}</pre>
+        </el-descriptions-item>
+        <el-descriptions-item label="创建时间">{{ formatTime(detailData.addTime) }}</el-descriptions-item>
       </el-descriptions>
       <template #footer>
         <span class="dialog-footer">
@@ -80,6 +98,7 @@
 <script setup>
 import { ref, reactive, onMounted, inject } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import UploadImage from '../UploadImage.vue'
 
 const axios = inject('axios')
 const tableData = ref([])
@@ -99,14 +118,21 @@ const searchQuery = reactive({
 const form = reactive({
   id: null,
   name: '',
-  status: 1,
-  remark: ''
+  coverImage: '',
+  value: '',
+  status: 1
 })
+
+const formatTime = (timestamp) => {
+  if (!timestamp) return ''
+  const date = new Date(timestamp * 1000)
+  return date.toLocaleString('zh-CN', { hour12: false }).replace(/\//g, '-')
+}
 
 const fetchData = async () => {
   loading.value = true
   try {
-    const res = await axios.get('/api/admin/extend/setting_system_form_data/list', { params: searchQuery })
+    const res = await axios.get('/api/admin/system/form/index', { params: searchQuery })
     if (res.data.code === 200) {
       tableData.value = res.data.data.records || res.data.data
       total.value = res.data.data.total || res.data.data.length
@@ -132,40 +158,33 @@ const handleSelectionChange = (val) => {
 }
 
 const handleAdd = () => {
-  dialogTitle.value = '添加系统表单收集数据'
+  dialogTitle.value = '添加表单'
   form.id = null
   form.name = ''
+  form.coverImage = ''
+  form.value = ''
   form.status = 1
-  form.remark = ''
   dialogVisible.value = true
 }
 
 const handleEdit = (row) => {
-  dialogTitle.value = '编辑系统表单收集数据'
+  dialogTitle.value = '编辑表单'
   form.id = row.id
   form.name = row.name
+  form.coverImage = row.coverImage || ''
+  form.value = row.value || ''
   form.status = row.status
-  form.remark = row.remark || ''
   dialogVisible.value = true
 }
 
-const handleDetail = async (row) => {
-  try {
-    const res = await axios.get(`/api/admin/extend/setting_system_form_data/detail?id=${row.id}`)
-    if (res.data.code === 200) {
-      detailData.value = res.data.data
-    } else {
-      detailData.value = { ...row }
-    }
-  } catch(e) {
-    detailData.value = { ...row }
-  }
+const handleDetail = (row) => {
+  detailData.value = { ...row }
   detailVisible.value = true
 }
 
 const handleStatusChange = async (row) => {
   try {
-    const res = await axios.post(`/api/admin/extend/setting_system_form_data/save`, row)
+    const res = await axios.post(`/api/admin/system/form/save`, row)
     if (res.data.code === 200) {
       ElMessage.success('状态修改成功')
     } else {
@@ -183,7 +202,7 @@ const handleDelete = (row) => {
     type: 'warning',
   }).then(async () => {
     try {
-      const res = await axios.post(`/api/admin/extend/setting_system_form_data/delete`, { id: row.id })
+      const res = await axios.post(`/api/admin/system/form/delete`, { id: row.id })
       if (res.data.code === 200) {
         ElMessage.success(res.data.msg || '删除成功')
         fetchData()
@@ -207,7 +226,7 @@ const handleBatchDelete = () => {
   }).then(async () => {
     const ids = selectedRows.value.map(item => item.id)
     try {
-      const res = await axios.post(`/api/admin/extend/setting_system_form_data/delete`, { ids })
+      const res = await axios.post(`/api/admin/system/form/delete`, { ids })
       if (res.data.code === 200) {
         ElMessage.success('批量删除成功')
         fetchData()
@@ -220,25 +239,9 @@ const handleBatchDelete = () => {
   }).catch(() => {})
 }
 
-const handleExport = async () => {
-  ElMessage.success('开始导出数据...')
-  try {
-    const res = await axios.get(`/api/admin/extend/setting_system_form_data/export`, { responseType: 'blob' })
-    const url = window.URL.createObjectURL(new Blob([res.data]))
-    const link = document.createElement('a')
-    link.href = url
-    link.setAttribute('download', '系统表单收集数据_export.csv')
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-  } catch(e) {
-    ElMessage.error('导出失败')
-  }
-}
-
 const submitForm = async () => {
   try {
-    const res = await axios.post(`/api/admin/extend/setting_system_form_data/save`, form)
+    const res = await axios.post(`/api/admin/system/form/save`, form)
     if (res.data.code === 200) {
       ElMessage.success(res.data.msg || '保存成功')
       dialogVisible.value = false

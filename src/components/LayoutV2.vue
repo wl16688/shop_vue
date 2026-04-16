@@ -261,12 +261,10 @@
       <el-icon><More /></el-icon>
       <span>优惠券</span>
     </template>
-    <el-sub-menu index="/marketing_store_coupon_issue_index">
-      <template #title>
-        <el-icon><Coin /></el-icon>
-        <span>优惠券列表</span>
-      </template>
-    </el-sub-menu>
+    <el-menu-item index="/marketing_store_coupon_issue_index">
+      <el-icon><Coin /></el-icon>
+      <span>优惠券列表</span>
+    </el-menu-item>
     <el-menu-item index="/marketing_store_coupon_user_index">
       <el-icon><Notebook /></el-icon>
       <span>领取记录</span>

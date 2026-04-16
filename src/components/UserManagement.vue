@@ -50,6 +50,27 @@
         />
       </div>
     </el-card>
+
+    <!-- User Detail Dialog -->
+    <el-dialog v-model="detailVisible" title="用户详情" width="500px">
+      <div v-if="currentUser" class="user-detail">
+        <div class="detail-item"><strong>UID:</strong> {{ currentUser.uid }}</div>
+        <div class="detail-item"><strong>账号:</strong> {{ currentUser.account || '暂无' }}</div>
+        <div class="detail-item"><strong>昵称:</strong> {{ currentUser.nickname }}</div>
+        <div class="detail-item"><strong>手机号:</strong> {{ currentUser.phone || '暂无' }}</div>
+        <div class="detail-item"><strong>真实姓名:</strong> {{ currentUser.realName || '暂无' }}</div>
+        <div class="detail-item"><strong>当前余额:</strong> {{ currentUser.nowMoney }}</div>
+        <div class="detail-item"><strong>积分:</strong> {{ currentUser.integral }}</div>
+        <div class="detail-item"><strong>等级:</strong> {{ currentUser.level === 0 ? '普通用户' : 'VIP' }}</div>
+        <div class="detail-item"><strong>注册时间:</strong> {{ formatTime(currentUser.addTime) }}</div>
+        <div class="detail-item"><strong>最后登录:</strong> {{ formatTime(currentUser.lastTime) }}</div>
+      </div>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button type="primary" @click="detailVisible = false">关闭</el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -64,6 +85,15 @@ const keyword = ref('')
 const page = ref(1)
 const limit = ref(15)
 const total = ref(0)
+
+const detailVisible = ref(false)
+const currentUser = ref(null)
+
+const formatTime = (timestamp) => {
+  if (!timestamp) return '暂无'
+  const date = new Date(timestamp * 1000)
+  return date.toLocaleString()
+}
 
 const fetchUsers = async () => {
   loading.value = true
@@ -83,7 +113,8 @@ const fetchUsers = async () => {
 }
 
 const handleEdit = (row) => {
-  ElMessage.info('暂未实现用户详情编辑弹窗')
+  currentUser.value = row
+  detailVisible.value = true
 }
 
 const handleStatusChange = async (row) => {
@@ -110,5 +141,9 @@ onMounted(() => {
   margin-top: 20px;
   display: flex;
   justify-content: center;
+}
+.user-detail .detail-item {
+  margin-bottom: 12px;
+  font-size: 14px;
 }
 </style>

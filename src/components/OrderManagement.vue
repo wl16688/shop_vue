@@ -64,6 +64,24 @@
         />
       </div>
     </el-card>
+
+    <!-- Delivery Dialog -->
+    <el-dialog v-model="deliveryDialogVisible" title="订单发货" width="400px">
+      <el-form :model="deliveryForm" label-width="100px">
+        <el-form-item label="快递公司">
+          <el-input v-model="deliveryForm.deliveryName" placeholder="请输入快递公司名称" />
+        </el-form-item>
+        <el-form-item label="快递单号">
+          <el-input v-model="deliveryForm.deliveryId" placeholder="请输入快递单号" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="deliveryDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="submitDelivery" :loading="submitting">确定发货</el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -79,6 +97,14 @@ const status = ref(null)
 const page = ref(1)
 const limit = ref(15)
 const total = ref(0)
+
+const deliveryDialogVisible = ref(false)
+const submitting = ref(false)
+const deliveryForm = ref({
+  id: null,
+  deliveryName: '',
+  deliveryId: ''
+})
 
 const getStatusName = (status) => {
   const statusMap = {
@@ -117,11 +143,50 @@ const fetchOrders = async () => {
 }
 
 const handleEdit = (row) => {
-  ElMessage.info('暂未实现订单详情页')
+  ElMessageBox.alert(
+    `<div>订单号：${row.orderId}</div>
+     <div>收货人：${row.realName} (${row.userPhone})</div>
+     <div>支付金额：￥${row.payPrice}</div>
+     <div>支付方式：${row.payType}</div>
+     <div>快递公司：${row.deliveryName || '暂无'}</div>
+     <div>快递单号：${row.deliveryId || '暂无'}</div>`,
+    '订单详情',
+    { dangerouslyUseHTMLString: true }
+  )
 }
 
 const handleDeliver = (row) => {
-  ElMessage.info('暂未实现发货操作（填写快递单号等）')
+  deliveryForm.value = {
+    id: row.id,
+    deliveryName: '',
+    deliveryId: ''
+  }
+  deliveryDialogVisible.value = true
+}
+
+const submitDelivery = async () => {
+  if (!deliveryForm.value.deliveryName || !deliveryForm.value.deliveryId) {
+    ElMessage.warning('请填写完整的快递信息')
+    return
+  }
+  submitting.value = true
+  try {
+    const res = await axios.post(`/api/admin/store/order/deliver/${deliveryForm.value.id}`, {
+      deliveryName: deliveryForm.value.deliveryName,
+      deliveryId: deliveryForm.value.deliveryId
+    })
+    if (res.data.code === 200) {
+      ElMessage.success('发货成功')
+      deliveryDialogVisible.value = false
+      fetchOrders()
+    } else {
+      ElMessage.error(res.data.msg || '发货失败')
+    }
+  } catch (error) {
+    ElMessage.error('发货请求失败')
+  } finally {
+    submitting.value = false
+  }
 }
 
 const handleDelete = (id) => {
