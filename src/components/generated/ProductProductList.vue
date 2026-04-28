@@ -441,7 +441,7 @@ const form = reactive({
 const fetchHeaderStats = async () => {
   try {
     const params = { ...searchQuery }
-    const res = await axios.get('/api/admin/store/product/type_header', { params })
+    const res = await axios.get('/api/admin/store/product/status_statistics', { params })
     if (res.data.code === 200) {
       headerStats.value = res.data.data
     }
@@ -462,7 +462,14 @@ const fetchData = async () => {
     
     const res = await axios.get('/api/admin/store/product/list', { params })
     if (res.data.code === 200) {
-      tableData.value = res.data.data.records || res.data.data
+      const records = res.data.data.records || res.data.data
+      // 除了出售中的商品(type=1)是上架状态，其他列表的商品在UI上均作为下架状态处理
+      if (searchQuery.type !== 1) {
+        records.forEach(item => {
+          item.isShow = 0
+        })
+      }
+      tableData.value = records
       total.value = res.data.data.total || tableData.value.length
     } else {
       ElMessage.error(res.data.msg || '获取数据失败')
