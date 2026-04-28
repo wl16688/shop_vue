@@ -450,11 +450,12 @@ const form = reactive({
 
 // 将前端零散的状态值组装为符合 PHP 接口标准的查询参数格式
 const buildParams = () => {
+  const { priceMin, priceMax, salesMin, salesMax, ...base } = searchQuery
   return {
-    ...searchQuery,
-    // 拼接成 "min-max" 或 "-max" 或 "min-" 格式，以便后端 applyRange() 正确解析
-    price_range: (searchQuery.priceMin || searchQuery.priceMax) ? `${searchQuery.priceMin}-${searchQuery.priceMax}` : '',
-    sales_range: (searchQuery.salesMin || searchQuery.salesMax) ? `${searchQuery.salesMin}-${searchQuery.salesMax}` : ''
+    ...base,
+    type: Number(searchQuery.type),
+    price_range: (priceMin || priceMax) ? `${priceMin || ''}-${priceMax || ''}` : '',
+    sales_range: (salesMin || salesMax) ? `${salesMin || ''}-${salesMax || ''}` : ''
   }
 }
 
@@ -473,6 +474,7 @@ const fetchHeaderStats = async () => {
 }
 
 const handleTabClick = (tab) => {
+  searchQuery.type = Number(searchQuery.type)
   searchQuery.page = 1
   fetchData()
 }
@@ -480,6 +482,7 @@ const handleTabClick = (tab) => {
 const fetchData = async () => {
   loading.value = true
   try {
+    searchQuery.type = Number(searchQuery.type)
     const params = buildParams()
     
     const res = await axios.get('/api/admin/store/product/list', { params })
