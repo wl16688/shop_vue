@@ -424,18 +424,19 @@ const handleDetail = (row) => {
 }
 
 
+// 商品列表搜索和分页条件，对应后端的接收字段
 const searchQuery = reactive({
-  type: 1,
-  store_name: '',
-  field_key: 'all',
-  cate_id: null,
-  product_type: null,
-  priceMin: '',
-  priceMax: '',
-  salesMin: '',
-  salesMax: '',
-  page: 1,
-  limit: 20
+  type: 1,              // 商品状态分类页签（1=销售中, 2=仓库中, 6=回收站等）
+  store_name: '',       // 搜索关键字的值
+  field_key: 'all',     // 搜索类型下拉框：all(全部), product_id(商品ID), store_name(商品名称)
+  cate_id: null,        // 商品分类
+  product_type: null,   // 商品类型(0:普通商品，1：卡密，3：虚拟商品等)
+  priceMin: '',         // 价格区间下限（前端用，组装给后端为 price_range）
+  priceMax: '',         // 价格区间上限
+  salesMin: '',         // 销量区间下限（前端用，组装给后端为 sales_range）
+  salesMax: '',         // 销量区间上限
+  page: 1,              // 当前页码
+  limit: 20             // 每页条数
 })
 
 const form = reactive({
@@ -447,10 +448,11 @@ const form = reactive({
   image: ''
 })
 
-// 将前端零散状态组装为符合 PHP 接口标准的查询参数
+// 将前端零散的状态值组装为符合 PHP 接口标准的查询参数格式
 const buildParams = () => {
   return {
     ...searchQuery,
+    // 拼接成 "min-max" 或 "-max" 或 "min-" 格式，以便后端 applyRange() 正确解析
     price_range: (searchQuery.priceMin || searchQuery.priceMax) ? `${searchQuery.priceMin}-${searchQuery.priceMax}` : '',
     sales_range: (searchQuery.salesMin || searchQuery.salesMax) ? `${searchQuery.salesMin}-${searchQuery.salesMax}` : ''
   }
