@@ -1,38 +1,36 @@
-# shop_vue
+# shop_vue（管理端前端）
 
-This template should help get you started developing with Vue 3 in Vite.
+本项目为商城管理端前端，基于 Vue 3 + Vite。
 
-## Recommended IDE Setup
+## 环境要求
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+- Node.js：`^20.19.0 || >=22.12.0`（见 [package.json](file:///workspace/shop_vue/package.json#L26-L28)）
+- npm：建议使用 Node 自带的 npm 版本
 
-## Recommended Browser Setup
+## 启动前说明
 
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
+- 本项目默认通过 Vite 代理 `/api` 到后端：`http://localhost:8081`（见 [vite.config.js](file:///workspace/shop_vue/vite.config.js#L16-L27)）
+- 启动前请先确保后端 `shop_java` 已运行在 `8081` 端口
 
-## Customize configuration
+## 安装依赖
 
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
-
-```sh
+```bash
 npm install
 ```
 
-### Compile and Hot-Reload for Development
+## 本地开发启动
 
-```sh
+```bash
 npm run dev
 ```
 
-### Compile and Minify for Production
+启动后访问地址：
 
-```sh
+- 管理端前端：http://localhost:5173/
+- 通过代理访问后端接口（示例）：http://localhost:5173/api/admin/
+
+## 打包构建
+
+```bash
 npm run build
 ```
