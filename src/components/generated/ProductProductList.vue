@@ -221,37 +221,7 @@
     </el-card>
 
     <!-- 添加/编辑商品对话框 -->
-    <el-dialog :title="dialogTitle" v-model="dialogVisible" width="650px">
-      <el-form label-width="100px" :model="form" ref="formRef">
-        <el-form-item label="商品名称" required>
-          <el-input v-model="form.storeName" placeholder="请输入商品名称"></el-input>
-        </el-form-item>
-        <el-row>
-          <el-col :span="12">
-            <el-form-item label="售价">
-              <el-input-number v-model="form.price" :precision="2" :step="1" :min="0" style="width: 100%;" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="库存">
-              <el-input-number v-model="form.stock" :min="0" style="width: 100%;" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-form-item label="上架状态">
-          <el-switch v-model="form.isShow" :active-value="1" :inactive-value="0" active-text="上架" inactive-text="下架" />
-        </el-form-item>
-        <el-form-item label="商品图片">
-          <el-input v-model="form.image" placeholder="请输入图片URL"></el-input>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="dialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="submitForm">确定</el-button>
-        </span>
-      </template>
-    </el-dialog>
+
 
     <!-- 库存管理对话框 -->
     <el-dialog title="库存管理" v-model="stockDialogVisible" width="700px">
@@ -287,131 +257,212 @@
     </el-dialog>
 
     <!-- 详情抽屉 -->
-    <el-drawer title="商品详情" v-model="detailDrawerVisible" size="60%">
-      <div class="drawer-header-info">
+    <el-drawer :title="currentDetail.id ? '编辑商品' : '发布商品'" v-model="detailDrawerVisible" size="70%">
+      <div class="drawer-header-info" v-if="currentDetail.id">
         <el-icon color="var(--el-color-primary)" size="24"><Goods /></el-icon>
         <span style="margin-left: 10px; font-weight: bold;">{{ currentDetail.storeName }}（商品ID：{{ currentDetail.id }}）</span>
       </div>
-      <el-tabs v-model="detailActiveTab" style="margin-top: 20px;">
-        <el-tab-pane label="基础信息" name="basic">
-          <div class="detail-section">
-            <h3 class="detail-title"><span class="title-bar"></span>基础信息</h3>
-            <el-row :gutter="20" class="detail-row">
-              <el-col :span="24" class="detail-item"><span class="detail-label">商品名称：</span>{{ currentDetail.storeName }}</el-col>
-              <el-col :span="8" class="detail-item"><span class="detail-label">商品分类：</span>{{ getCateNames(currentDetail.cateId) || '-' }}</el-col>
-              <el-col :span="8" class="detail-item"><span class="detail-label">商品品牌：</span>{{ getBrandName(currentDetail.brandId) }}</el-col>
-              <el-col :span="8" class="detail-item"><span class="detail-label">商品单位：</span>{{ currentDetail.unitName || '-' }}</el-col>
-              <el-col :span="8" class="detail-item"><span class="detail-label">商品标签：</span>-</el-col>
-              <el-col :span="8" class="detail-item"><span class="detail-label">商品编码：</span>{{ currentDetail.code || '-' }}</el-col>
-            </el-row>
-            <div style="margin-top: 15px;" class="detail-item">
-              <span class="detail-label">商品轮播图：</span>
-              <div style="display: flex; gap: 10px; margin-top: 10px;">
-                <el-image v-for="(img, idx) in currentDetailImages" :key="idx" :src="img" style="width: 60px; height: 60px; border-radius: 4px; border: 1px solid #eee;" fit="cover" />
-              </div>
+      <el-form :model="currentDetail" label-width="100px" style="margin-top: 20px;">
+        <el-tabs v-model="detailActiveTab">
+          <el-tab-pane label="基础信息" name="basic">
+            <div class="detail-section">
+              <h3 class="detail-title"><span class="title-bar"></span>基础信息</h3>
+              <el-row :gutter="20">
+                <el-col :span="24">
+                  <el-form-item label="商品名称" required>
+                    <el-input v-model="currentDetail.storeName" placeholder="请输入商品名称" />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                  <el-form-item label="商品分类" required>
+                    <el-cascader v-model="currentDetail.cateId" :options="categoryOptions" :props="{ checkStrictly: true, value: 'id', label: 'cateName' }" clearable placeholder="请选择商品分类" style="width: 100%" />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                  <el-form-item label="商品品牌">
+                    <el-select v-model="currentDetail.brandId" placeholder="请选择品牌" clearable style="width: 100%">
+                      <el-option v-for="b in brandOptions" :key="b.id" :label="b.brandName" :value="b.id" />
+                    </el-select>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                  <el-form-item label="商品单位">
+                    <el-input v-model="currentDetail.unitName" placeholder="如：件、个" />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                  <el-form-item label="商品编码">
+                    <el-input v-model="currentDetail.code" placeholder="请输入商品编码" />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="24">
+                  <el-form-item label="商品轮播图">
+                    <el-input type="textarea" v-model="currentDetail.sliderImage" :rows="2" placeholder="请输入轮播图URL，多个以逗号分隔" />
+                    <div style="display: flex; gap: 10px; margin-top: 10px;" v-if="currentDetailImages.length">
+                      <el-image v-for="(img, idx) in currentDetailImages" :key="idx" :src="img" style="width: 60px; height: 60px; border-radius: 4px; border: 1px solid #eee;" fit="cover" />
+                    </div>
+                  </el-form-item>
+                </el-col>
+              </el-row>
             </div>
-          </div>
+            
+            <div class="detail-section" style="margin-top: 30px;">
+              <h3 class="detail-title"><span class="title-bar"></span>物流设置</h3>
+              <el-row :gutter="20">
+                <el-col :span="12">
+                  <el-form-item label="配送方式">
+                    <el-input v-model="currentDetail.deliveryType" placeholder="如：快递" />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                  <el-form-item label="运费设置">
+                    <el-radio-group v-model="currentDetail.freight">
+                      <el-radio :label="1">固定运费</el-radio>
+                      <el-radio :label="2">运费模板</el-radio>
+                      <el-radio :label="3">包邮</el-radio>
+                    </el-radio-group>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+            </div>
+          </el-tab-pane>
           
-          <div class="detail-section" style="margin-top: 30px;">
-            <h3 class="detail-title"><span class="title-bar"></span>物流设置</h3>
-            <el-row :gutter="20" class="detail-row">
-              <el-col :span="12" class="detail-item"><span class="detail-label">配送方式：</span>快递</el-col>
-              <el-col :span="12" class="detail-item"><span class="detail-label">运费设置：</span>包邮</el-col>
-            </el-row>
-          </div>
-        </el-tab-pane>
-        <el-tab-pane label="规格库存" name="spec">
-          <el-table :data="specTableData" v-loading="specLoading" border style="width: 100%;">
-            <el-table-column prop="sku" label="规格名称" min-width="160" />
-            <el-table-column label="图片" width="90" align="center">
-              <template #default="scope">
-                <el-image v-if="scope.row.image" :src="scope.row.image" style="width: 40px; height: 40px; border-radius: 4px;" fit="cover" />
-                <span v-else>-</span>
-              </template>
-            </el-table-column>
-            <el-table-column label="售价" width="90" align="center">
-              <template #default="scope">{{ formatMoney(scope.row.price) }}</template>
-            </el-table-column>
-            <el-table-column label="成本价" width="90" align="center">
-              <template #default="scope">{{ formatMoney(scope.row.cost) }}</template>
-            </el-table-column>
-            <el-table-column label="结算价" width="90" align="center">
-              <template #default="scope">{{ formatMoney(scope.row.settlePrice) }}</template>
-            </el-table-column>
-            <el-table-column label="划线价" width="90" align="center">
-              <template #default="scope">{{ formatMoney(scope.row.otPrice) }}</template>
-            </el-table-column>
-            <el-table-column prop="stock" label="库存" width="90" align="center" />
-            <el-table-column prop="sku" label="商品编码" width="120" align="center" />
-            <el-table-column prop="barCode" label="商品条形码" width="140" align="center" />
-            <el-table-column label="重量(KG)" width="110" align="center">
-              <template #default="scope">{{ scope.row.weight ?? 0 }}</template>
-            </el-table-column>
-          </el-table>
-          <div style="margin-top: 16px; display: flex; justify-content: flex-end;">
-            <el-pagination
-              background
-              layout="total, sizes, prev, pager, next, jumper"
-              :total="specTotal"
-              :page-sizes="[10, 20, 50, 100]"
-              v-model:current-page="specPage"
-              v-model:page-size="specLimit"
-              @current-change="fetchSpecList"
-              @size-change="fetchSpecList"
-            />
-          </div>
-        </el-tab-pane>
-        <el-tab-pane label="商品详情" name="content">
-          <div v-if="currentDetail.description || currentDetail.content" v-html="currentDetail.description || currentDetail.content"></div>
-          <el-empty v-else description="暂无数据" />
-        </el-tab-pane>
-        <el-tab-pane label="其他设置" name="other">
-          <div class="detail-section">
-            <h3 class="detail-title"><span class="title-bar"></span>营销设置</h3>
-            <el-row :gutter="20" class="detail-row">
-              <el-col :span="8" class="detail-item"><span class="detail-label">已售数量：</span>{{ toInt(currentDetail.sales) }}</el-col>
-              <el-col :span="8" class="detail-item"><span class="detail-label">排序：</span>{{ toInt(currentDetail.sort) }}</el-col>
-              <el-col :span="8" class="detail-item"><span class="detail-label">赠送积分：</span>{{ toInt(currentDetail.giveIntegral) }}</el-col>
-            </el-row>
-          </div>
-        </el-tab-pane>
-        <el-tab-pane label="商品评论" name="reply">
-          <el-table :data="replyTableData" v-loading="replyLoading" border style="width: 100%;">
-            <el-table-column prop="id" label="评论ID" width="90" align="center" />
-            <el-table-column label="商品信息" min-width="160">
-              <template #default>{{ currentDetail.storeName }}</template>
-            </el-table-column>
-            <el-table-column label="评价内容" min-width="260">
-              <template #default="scope">
-                <div>用户：{{ scope.row.nickname || scope.row.uid }}</div>
-                <div>评分：{{ toInt(scope.row.productScore) }}</div>
-                <div>{{ scope.row.comment || '-' }}</div>
-              </template>
-            </el-table-column>
-            <el-table-column label="评价时间" width="170" align="center">
-              <template #default="scope">{{ formatTime(scope.row.addTime) }}</template>
-            </el-table-column>
-            <el-table-column label="操作" width="180" align="center">
-              <template #default="scope">
-                <el-button size="small" type="primary" link @click="openReply(scope.row)">回复</el-button>
-                <el-button size="small" type="danger" link @click="deleteReply(scope.row)">删除</el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-          <div style="margin-top: 16px; display: flex; justify-content: flex-end;">
-            <el-pagination
-              background
-              layout="total, sizes, prev, pager, next, jumper"
-              :total="replyTotal"
-              :page-sizes="[10, 20, 50, 100]"
-              v-model:current-page="replyPage"
-              v-model:page-size="replyLimit"
-              @current-change="fetchReplyList"
-              @size-change="fetchReplyList"
-            />
-          </div>
-        </el-tab-pane>
-      </el-tabs>
+          <el-tab-pane label="规格库存" name="spec">
+            <el-table :data="specTableData" v-loading="specLoading" border style="width: 100%;">
+              <el-table-column prop="sku" label="规格名称" min-width="120" />
+              <el-table-column label="图片" width="100" align="center">
+                <template #default="scope">
+                  <el-input v-model="scope.row.image" placeholder="URL" size="small" />
+                </template>
+              </el-table-column>
+              <el-table-column label="售价" width="110" align="center">
+                <template #default="scope">
+                  <el-input-number v-model="scope.row.price" :precision="2" :controls="false" size="small" style="width: 100%" />
+                </template>
+              </el-table-column>
+              <el-table-column label="成本价" width="110" align="center">
+                <template #default="scope">
+                  <el-input-number v-model="scope.row.cost" :precision="2" :controls="false" size="small" style="width: 100%" />
+                </template>
+              </el-table-column>
+              <el-table-column label="结算价" width="110" align="center">
+                <template #default="scope">
+                  <el-input-number v-model="scope.row.settlePrice" :precision="2" :controls="false" size="small" style="width: 100%" />
+                </template>
+              </el-table-column>
+              <el-table-column label="划线价" width="110" align="center">
+                <template #default="scope">
+                  <el-input-number v-model="scope.row.otPrice" :precision="2" :controls="false" size="small" style="width: 100%" />
+                </template>
+              </el-table-column>
+              <el-table-column label="库存" width="110" align="center">
+                <template #default="scope">
+                  <el-input-number v-model="scope.row.stock" :min="0" :controls="false" size="small" style="width: 100%" />
+                </template>
+              </el-table-column>
+              <el-table-column label="商品编码" width="120" align="center">
+                <template #default="scope">
+                  <el-input v-model="scope.row.sku" size="small" />
+                </template>
+              </el-table-column>
+              <el-table-column label="重量(KG)" width="100" align="center">
+                <template #default="scope">
+                  <el-input-number v-model="scope.row.weight" :precision="2" :controls="false" size="small" style="width: 100%" />
+                </template>
+              </el-table-column>
+            </el-table>
+            <div style="margin-top: 16px; display: flex; justify-content: flex-end;">
+              <el-pagination
+                background
+                layout="total, sizes, prev, pager, next, jumper"
+                :total="specTotal"
+                :page-sizes="[10, 20, 50, 100]"
+                v-model:current-page="specPage"
+                v-model:page-size="specLimit"
+                @current-change="fetchSpecList"
+                @size-change="fetchSpecList"
+              />
+            </div>
+          </el-tab-pane>
+          
+          <el-tab-pane label="商品详情" name="content">
+            <el-form-item label="图文详情" label-width="80px">
+              <el-input type="textarea" v-model="currentDetail.description" :rows="15" placeholder="请输入商品图文详情 (支持HTML代码)" />
+            </el-form-item>
+          </el-tab-pane>
+          
+          <el-tab-pane label="其他设置" name="other">
+            <div class="detail-section">
+              <h3 class="detail-title"><span class="title-bar"></span>营销设置</h3>
+              <el-row :gutter="20">
+                <el-col :span="12">
+                  <el-form-item label="已售数量">
+                    <el-input-number v-model="currentDetail.sales" :min="0" style="width: 100%" />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                  <el-form-item label="虚拟销量">
+                    <el-input-number v-model="currentDetail.ficti" :min="0" style="width: 100%" />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                  <el-form-item label="排序">
+                    <el-input-number v-model="currentDetail.sort" :min="0" style="width: 100%" />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                  <el-form-item label="赠送积分">
+                    <el-input-number v-model="currentDetail.giveIntegral" :min="0" style="width: 100%" />
+                  </el-form-item>
+                </el-col>
+              </el-row>
+            </div>
+          </el-tab-pane>
+          
+          <el-tab-pane label="商品评论" name="reply">
+            <el-table :data="replyTableData" v-loading="replyLoading" border style="width: 100%;">
+              <el-table-column prop="id" label="评论ID" width="90" align="center" />
+              <el-table-column label="商品信息" min-width="160">
+                <template #default>{{ currentDetail.storeName }}</template>
+              </el-table-column>
+              <el-table-column label="评价内容" min-width="260">
+                <template #default="scope">
+                  <div>用户：{{ scope.row.nickname || scope.row.uid }}</div>
+                  <div>评分：{{ toInt(scope.row.productScore) }}</div>
+                  <div>{{ scope.row.comment || '-' }}</div>
+                </template>
+              </el-table-column>
+              <el-table-column label="评价时间" width="170" align="center">
+                <template #default="scope">{{ formatTime(scope.row.addTime) }}</template>
+              </el-table-column>
+              <el-table-column label="操作" width="180" align="center">
+                <template #default="scope">
+                  <el-button size="small" type="primary" link @click="openReply(scope.row)">回复</el-button>
+                  <el-button size="small" type="danger" link @click="deleteReply(scope.row)">删除</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+            <div style="margin-top: 16px; display: flex; justify-content: flex-end;">
+              <el-pagination
+                background
+                layout="total, sizes, prev, pager, next, jumper"
+                :total="replyTotal"
+                :page-sizes="[10, 20, 50, 100]"
+                v-model:current-page="replyPage"
+                v-model:page-size="replyLimit"
+                @current-change="fetchReplyList"
+                @size-change="fetchReplyList"
+              />
+            </div>
+          </el-tab-pane>
+        </el-tabs>
+      </el-form>
+      <template #footer>
+        <div style="text-align: right; padding-top: 10px;">
+          <el-button @click="detailDrawerVisible = false">取消</el-button>
+          <el-button type="primary" @click="handleSaveProduct">保存设置</el-button>
+        </div>
+      </template>
     </el-drawer>
 
     <el-dialog title="回复评论" v-model="replyDialogVisible" width="520px">
@@ -468,6 +519,7 @@ const handleSelectionChange = (val) => {
 const categoryOptions = ref([])
 const categoryNameMap = ref({})
 const brandNameMap = ref({})
+const brandOptions = ref([])
 
 const toInt = (v) => {
   const n = Number(v)
@@ -666,6 +718,7 @@ const deleteReply = async (row) => {
 const fetchBrands = async () => {
   const res = await axios.get('/api/admin/store/product/brand/list', { params: { page: 1, limit: 1000 } })
   if (res.data && res.data.code === 200 && res.data.data && Array.isArray(res.data.data.records)) {
+    brandOptions.value = res.data.data.records
     const map = {}
     res.data.data.records.forEach(item => {
       if (item && item.id != null) {
@@ -727,7 +780,34 @@ const submitStock = async () => {
   }
 }
 
-const handleDetail = (row) => {
+const handleAdd = () => {
+  currentDetail.value = {
+    id: null,
+    storeName: '',
+    cateId: null,
+    brandId: null,
+    unitName: '',
+    code: '',
+    sliderImage: '',
+    deliveryType: '',
+    freight: 1,
+    sales: 0,
+    ficti: 0,
+    sort: 0,
+    giveIntegral: 0,
+    description: '',
+    image: '',
+    price: 0,
+    stock: 0,
+    isShow: 1
+  }
+  specTableData.value = []
+  replyTableData.value = []
+  detailActiveTab.value = 'basic'
+  detailDrawerVisible.value = true
+}
+
+const handleEdit = (row) => {
   currentDetail.value = { ...row }
   detailActiveTab.value = 'basic'
   detailDrawerVisible.value = true
@@ -738,7 +818,6 @@ const handleDetail = (row) => {
     fetchReplyList()
   })
 }
-
 
 // 商品列表搜索和分页条件，对应后端的接收字段
 const searchQuery = reactive({
@@ -755,14 +834,7 @@ const searchQuery = reactive({
   limit: 20             // 每页条数
 })
 
-const form = reactive({
-  id: null,
-  storeName: '',
-  price: 0,
-  stock: 0,
-  isShow: 1,
-  image: ''
-})
+
 
 // 将前端零散的状态值组装为符合 PHP 接口标准的查询参数格式
 const buildParams = () => {
@@ -824,6 +896,46 @@ const fetchData = async () => {
   }
 }
 
+const handleSaveProduct = async () => {
+  try {
+    const isEdit = !!currentDetail.value.id
+    
+    // 1. 保存主商品信息
+    const productRes = await axios.post('/api/admin/store/product/save', currentDetail.value)
+    if (productRes.data.code !== 200) {
+      return ElMessage.error(productRes.data.msg || '保存商品信息失败')
+    }
+    
+    const productId = isEdit ? currentDetail.value.id : productRes.data.data
+    
+    // 2. 保存图文详情
+    if (currentDetail.value.description !== undefined) {
+      await axios.post('/api/admin/store/product/description/save', {
+        productId,
+        description: currentDetail.value.description,
+        type: 0
+      })
+    }
+    
+    // 3. 保存规格库存 (若有修改)
+    if (specTableData.value && specTableData.value.length > 0) {
+      const specPayload = specTableData.value.map(item => ({
+        ...item,
+        productId
+      }))
+      await axios.post('/api/admin/store/product/attr_value/save', specPayload)
+    }
+    
+    ElMessage.success(isEdit ? '商品编辑成功' : '商品发布成功')
+    detailDrawerVisible.value = false
+    fetchData()
+    fetchHeaderStats()
+  } catch (error) {
+    console.error('保存商品失败', error)
+    ElMessage.error('保存失败，请检查网络')
+  }
+}
+
 const resetSearch = () => {
   searchQuery.store_name = ''
   searchQuery.field_key = 'all'
@@ -837,27 +949,7 @@ const resetSearch = () => {
   fetchData()
 }
 
-const handleAdd = () => {
-  dialogTitle.value = '发布商品'
-  form.id = null
-  form.storeName = ''
-  form.price = 0
-  form.stock = 0
-  form.isShow = 1
-  form.image = ''
-  dialogVisible.value = true
-}
 
-const handleEdit = (row) => {
-  dialogTitle.value = '编辑商品'
-  form.id = row.id
-  form.storeName = row.storeName
-  form.price = row.price
-  form.stock = row.stock
-  form.isShow = row.isShow
-  form.image = row.image || ''
-  dialogVisible.value = true
-}
 
 const handleStatusChange = async (row) => {
   try {
@@ -898,21 +990,7 @@ const handleExport = async () => {
   ElMessage.success('开始导出商品数据...')
 }
 
-const submitForm = async () => {
-  try {
-    const res = await axios.post(`/api/admin/store/product/save`, form)
-    if (res.data.code === 200) {
-      ElMessage.success(form.id ? '编辑成功' : '添加成功')
-      dialogVisible.value = false
-      fetchData()
-      fetchHeaderStats()
-    } else {
-      ElMessage.error(res.data.msg || '保存失败')
-    }
-  } catch(e) {
-    ElMessage.error('网络错误')
-  }
-}
+
 
 onMounted(() => {
   fetchCategories()
