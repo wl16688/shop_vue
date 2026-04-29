@@ -321,19 +321,112 @@
           </div>
         </el-tab-pane>
         <el-tab-pane label="规格库存" name="spec">
-          <el-empty description="暂无数据" />
+          <el-table :data="specTableData" v-loading="specLoading" border style="width: 100%;">
+            <el-table-column prop="sku" label="规格名称" min-width="160" />
+            <el-table-column label="图片" width="90" align="center">
+              <template #default="scope">
+                <el-image v-if="scope.row.image" :src="scope.row.image" style="width: 40px; height: 40px; border-radius: 4px;" fit="cover" />
+                <span v-else>-</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="售价" width="90" align="center">
+              <template #default="scope">{{ formatMoney(scope.row.price) }}</template>
+            </el-table-column>
+            <el-table-column label="成本价" width="90" align="center">
+              <template #default="scope">{{ formatMoney(scope.row.cost) }}</template>
+            </el-table-column>
+            <el-table-column label="结算价" width="90" align="center">
+              <template #default="scope">{{ formatMoney(scope.row.settlePrice) }}</template>
+            </el-table-column>
+            <el-table-column label="划线价" width="90" align="center">
+              <template #default="scope">{{ formatMoney(scope.row.otPrice) }}</template>
+            </el-table-column>
+            <el-table-column prop="stock" label="库存" width="90" align="center" />
+            <el-table-column prop="sku" label="商品编码" width="120" align="center" />
+            <el-table-column prop="barCode" label="商品条形码" width="140" align="center" />
+            <el-table-column label="重量(KG)" width="110" align="center">
+              <template #default="scope">{{ scope.row.weight ?? 0 }}</template>
+            </el-table-column>
+          </el-table>
+          <div style="margin-top: 16px; display: flex; justify-content: flex-end;">
+            <el-pagination
+              background
+              layout="total, sizes, prev, pager, next, jumper"
+              :total="specTotal"
+              :page-sizes="[10, 20, 50, 100]"
+              v-model:current-page="specPage"
+              v-model:page-size="specLimit"
+              @current-change="fetchSpecList"
+              @size-change="fetchSpecList"
+            />
+          </div>
         </el-tab-pane>
         <el-tab-pane label="商品详情" name="content">
-          <el-empty description="暂无数据" />
+          <div v-if="currentDetail.description || currentDetail.content" v-html="currentDetail.description || currentDetail.content"></div>
+          <el-empty v-else description="暂无数据" />
         </el-tab-pane>
         <el-tab-pane label="其他设置" name="other">
-          <el-empty description="暂无数据" />
+          <div class="detail-section">
+            <h3 class="detail-title"><span class="title-bar"></span>营销设置</h3>
+            <el-row :gutter="20" class="detail-row">
+              <el-col :span="8" class="detail-item"><span class="detail-label">已售数量：</span>{{ toInt(currentDetail.sales) }}</el-col>
+              <el-col :span="8" class="detail-item"><span class="detail-label">排序：</span>{{ toInt(currentDetail.sort) }}</el-col>
+              <el-col :span="8" class="detail-item"><span class="detail-label">赠送积分：</span>{{ toInt(currentDetail.giveIntegral) }}</el-col>
+            </el-row>
+          </div>
         </el-tab-pane>
         <el-tab-pane label="商品评论" name="reply">
-          <el-empty description="暂无数据" />
+          <el-table :data="replyTableData" v-loading="replyLoading" border style="width: 100%;">
+            <el-table-column prop="id" label="评论ID" width="90" align="center" />
+            <el-table-column label="商品信息" min-width="160">
+              <template #default>{{ currentDetail.storeName }}</template>
+            </el-table-column>
+            <el-table-column label="评价内容" min-width="260">
+              <template #default="scope">
+                <div>用户：{{ scope.row.nickname || scope.row.uid }}</div>
+                <div>评分：{{ toInt(scope.row.productScore) }}</div>
+                <div>{{ scope.row.comment || '-' }}</div>
+              </template>
+            </el-table-column>
+            <el-table-column label="评价时间" width="170" align="center">
+              <template #default="scope">{{ formatTime(scope.row.addTime) }}</template>
+            </el-table-column>
+            <el-table-column label="操作" width="180" align="center">
+              <template #default="scope">
+                <el-button size="small" type="primary" link @click="openReply(scope.row)">回复</el-button>
+                <el-button size="small" type="danger" link @click="deleteReply(scope.row)">删除</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+          <div style="margin-top: 16px; display: flex; justify-content: flex-end;">
+            <el-pagination
+              background
+              layout="total, sizes, prev, pager, next, jumper"
+              :total="replyTotal"
+              :page-sizes="[10, 20, 50, 100]"
+              v-model:current-page="replyPage"
+              v-model:page-size="replyLimit"
+              @current-change="fetchReplyList"
+              @size-change="fetchReplyList"
+            />
+          </div>
         </el-tab-pane>
       </el-tabs>
     </el-drawer>
+
+    <el-dialog title="回复评论" v-model="replyDialogVisible" width="520px">
+      <el-form label-width="90px">
+        <el-form-item label="回复内容">
+          <el-input type="textarea" v-model="replyContent" :rows="4" placeholder="请输入回复内容" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="replyDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="submitReply">确定</el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -422,6 +515,14 @@ const getBrandName = (brandId) => {
   return brandNameMap.value[String(brandId)] || '-'
 }
 
+const formatTime = (ts) => {
+  const n = Number(ts)
+  if (!Number.isFinite(n) || n <= 0) return '-'
+  const d = new Date(n * 1000)
+  const pad = (v) => String(v).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+}
+
 const parseImages = (sliderImage, image) => {
   const list = []
   if (sliderImage) {
@@ -445,6 +546,22 @@ const parseImages = (sliderImage, image) => {
 
 const currentDetailImages = computed(() => parseImages(currentDetail.value.sliderImage, currentDetail.value.image))
 
+const specTableData = ref([])
+const specLoading = ref(false)
+const specTotal = ref(0)
+const specPage = ref(1)
+const specLimit = ref(10)
+
+const replyTableData = ref([])
+const replyLoading = ref(false)
+const replyTotal = ref(0)
+const replyPage = ref(1)
+const replyLimit = ref(10)
+
+const replyDialogVisible = ref(false)
+const replyContent = ref('')
+const currentReplyRow = ref(null)
+
 const fetchCategories = async () => {
   const res = await axios.get('/api/admin/store/productCategory/list', { params: { isShow: 1 } })
   if (res.data && res.data.code === 200) {
@@ -457,6 +574,93 @@ const fetchCategories = async () => {
     })
     categoryNameMap.value = map
   }
+}
+
+const fetchProductInfo = async (id) => {
+  const res = await axios.get(`/api/admin/store/product/info/${id}`)
+  if (res.data && res.data.code === 200) {
+    currentDetail.value = res.data.data || {}
+  }
+}
+
+const fetchSpecList = async () => {
+  if (!currentDetail.value || !currentDetail.value.id) return
+  specLoading.value = true
+  try {
+    const res = await axios.get('/api/admin/store/product/attr_value/list', {
+      params: { product_id: currentDetail.value.id, page: specPage.value, limit: specLimit.value }
+    })
+    if (res.data && res.data.code === 200 && res.data.data) {
+      specTableData.value = res.data.data.records || []
+      specTotal.value = res.data.data.total || specTableData.value.length
+    } else {
+      specTableData.value = []
+      specTotal.value = 0
+    }
+  } catch (e) {
+    specTableData.value = []
+    specTotal.value = 0
+  } finally {
+    specLoading.value = false
+  }
+}
+
+const fetchReplyList = async () => {
+  if (!currentDetail.value || !currentDetail.value.id) return
+  replyLoading.value = true
+  try {
+    const res = await axios.get('/api/admin/store/product/reply/list', {
+      params: { product_id: currentDetail.value.id, page: replyPage.value, limit: replyLimit.value }
+    })
+    if (res.data && res.data.code === 200 && res.data.data) {
+      replyTableData.value = res.data.data.records || []
+      replyTotal.value = res.data.data.total || replyTableData.value.length
+    } else {
+      replyTableData.value = []
+      replyTotal.value = 0
+    }
+  } catch (e) {
+    replyTableData.value = []
+    replyTotal.value = 0
+  } finally {
+    replyLoading.value = false
+  }
+}
+
+const openReply = (row) => {
+  currentReplyRow.value = row
+  replyContent.value = row.merchantReplyContent || ''
+  replyDialogVisible.value = true
+}
+
+const submitReply = async () => {
+  if (!currentReplyRow.value) return
+  try {
+    const payload = { id: currentReplyRow.value.id, merchantReplyContent: replyContent.value }
+    const res = await axios.post('/api/admin/store/product/reply/set_reply', payload)
+    if (res.data && res.data.code === 200) {
+      ElMessage.success(res.data.msg || '回复成功')
+      replyDialogVisible.value = false
+      fetchReplyList()
+    } else {
+      ElMessage.error(res.data.msg || '回复失败')
+    }
+  } catch (e) {
+    ElMessage.error('网络错误')
+  }
+}
+
+const deleteReply = async (row) => {
+  try {
+    await ElMessageBox.confirm('确认删除该评论？', '提示', { type: 'warning' })
+    const res = await axios.post('/api/admin/store/product/reply/delete', { id: row.id })
+    if (res.data && res.data.code === 200) {
+      ElMessage.success(res.data.msg || '删除成功')
+      fetchReplyList()
+    } else {
+      ElMessage.error(res.data.msg || '删除失败')
+    }
+  } catch (e) {}
 }
 
 const fetchBrands = async () => {
@@ -527,6 +731,12 @@ const handleDetail = (row) => {
   currentDetail.value = { ...row }
   detailActiveTab.value = 'basic'
   detailDrawerVisible.value = true
+  specPage.value = 1
+  replyPage.value = 1
+  fetchProductInfo(row.id).then(() => {
+    fetchSpecList()
+    fetchReplyList()
+  })
 }
 
 
