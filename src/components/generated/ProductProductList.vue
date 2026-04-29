@@ -644,9 +644,11 @@
               <el-input-number v-model="currentDetail.giveIntegral" :min="0" style="width: 100%" />
             </el-form-item>
             <el-form-item label="赠送优惠券">
-              <div style="display: flex; gap: 10px; width: 100%; align-items: center;">
-                <el-input v-model="currentDetail.couponIds" placeholder="优惠券ID，多个用逗号分隔" />
-                <el-button type="primary" @click="goCoupon">添加优惠券</el-button>
+              <div style="width: 100%;">
+                <div v-if="selectedCoupons.length" style="margin-bottom: 10px; display: flex; flex-wrap: wrap; gap: 8px;">
+                  <el-tag v-for="c in selectedCoupons" :key="c.issueCouponId" closable @close="removeCoupon(c)">{{ c.title }}</el-tag>
+                </div>
+                <el-button type="primary" @click="openCouponDialog">添加优惠券</el-button>
               </div>
             </el-form-item>
             <el-form-item label="服务保障">
@@ -802,6 +804,41 @@
         </span>
       </template>
     </el-dialog>
+
+    <el-dialog title="选择优惠券" v-model="couponDialogVisible" width="900px">
+      <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+        <el-input v-model="couponKeyword" placeholder="搜索优惠券名称" style="width: 260px" clearable @keyup.enter="fetchCouponList" />
+        <el-button type="primary" @click="fetchCouponList">搜索</el-button>
+      </div>
+      <el-table :data="couponList" v-loading="couponLoading" border style="width: 100%;" @selection-change="handleCouponSelection">
+        <el-table-column type="selection" width="55" />
+        <el-table-column prop="id" label="ID" width="90" align="center" />
+        <el-table-column prop="couponTitle" label="优惠券名称" min-width="220" />
+        <el-table-column prop="couponPrice" label="面值" width="120" align="center" />
+        <el-table-column prop="useMinPrice" label="使用门槛" width="120" align="center" />
+        <el-table-column prop="status" label="状态" width="100" align="center">
+          <template #default="scope">
+            <span>{{ Number(scope.row.status) === 1 ? '启用' : '停用' }}</span>
+          </template>
+        </el-table-column>
+      </el-table>
+      <div style="margin-top: 12px; display: flex; justify-content: flex-end;">
+        <el-pagination
+          background
+          layout="total, prev, pager, next"
+          :total="couponTotal"
+          v-model:current-page="couponPage"
+          :page-size="couponLimit"
+          @current-change="fetchCouponList"
+        />
+      </div>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="couponDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="confirmCouponSelection">确定</el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -880,7 +917,6 @@ const goCategory = () => router.push('/product_product_classify')
 const goBrand = () => router.push('/product_product_brand')
 const goUnit = () => router.push('/product_unitList')
 const goLabel = () => router.push('/product_label')
-const goCoupon = () => router.push('/marketing_store_coupon_issue_index')
 
 const customFormOpen = ref(false)
 const specParams = ref([])
@@ -895,6 +931,70 @@ const removeSpecParam = (idx) => {
 
 const addSpecParamTemplate = () => {
   addSpecParam()
+}
+
+const selectedCoupons = ref([])
+const couponDialogVisible = ref(false)
+const couponList = ref([])
+const couponTotal = ref(0)
+const couponLoading = ref(false)
+const couponKeyword = ref('')
+const couponPage = ref(1)
+const couponLimit = ref(10)
+const couponSelectedTemp = ref([])
+
+const openCouponDialog = () => {
+  couponDialogVisible.value = true
+  couponPage.value = 1
+  fetchCouponList()
+}
+
+const fetchCouponList = async () => {
+  couponLoading.value = true
+  try {
+    const res = await axios.get('/api/admin/store/coupon/list', {
+      params: {
+        page: couponPage.value,
+        limit: couponLimit.value,
+        keyword: couponKeyword.value || ''
+      }
+    })
+    if (res.data && res.data.code === 200 && res.data.data) {
+      couponList.value = res.data.data.records || []
+      couponTotal.value = res.data.data.total || couponList.value.length
+    } else {
+      couponList.value = []
+      couponTotal.value = 0
+    }
+  } catch (e) {
+    couponList.value = []
+    couponTotal.value = 0
+  } finally {
+    couponLoading.value = false
+  }
+}
+
+const handleCouponSelection = (rows) => {
+  couponSelectedTemp.value = rows || []
+}
+
+const confirmCouponSelection = () => {
+  const map = new Map()
+  selectedCoupons.value.forEach(c => {
+    map.set(Number(c.issueCouponId), c)
+  })
+  couponSelectedTemp.value.forEach(r => {
+    const id = Number(r.id)
+    if (!map.has(id)) {
+      map.set(id, { issueCouponId: id, title: r.couponTitle })
+    }
+  })
+  selectedCoupons.value = Array.from(map.values())
+  couponDialogVisible.value = false
+}
+
+const removeCoupon = (c) => {
+  selectedCoupons.value = selectedCoupons.value.filter(it => Number(it.issueCouponId) !== Number(c.issueCouponId))
 }
 
 const toInt = (v) => {
@@ -1193,7 +1293,6 @@ const fetchProductInfo = async (id) => {
     if (currentDetail.value.isLimit == null) currentDetail.value.isLimit = 0
     if (currentDetail.value.limitType == null) currentDetail.value.limitType = 1
     if (currentDetail.value.limitNum == null) currentDetail.value.limitNum = 0
-    if (currentDetail.value.couponIds == null) currentDetail.value.couponIds = ''
     if (currentDetail.value.specs == null) currentDetail.value.specs = ''
     if (currentDetail.value.customForm == null) currentDetail.value.customForm = ''
     customFormOpen.value = String(currentDetail.value.customForm || '').trim().length > 0
@@ -1230,6 +1329,20 @@ const fetchProductInfo = async (id) => {
       ensureIdArr.value = currentDetail.value.ensureId.split(',').filter(v => v)
     } else {
       ensureIdArr.value = []
+    }
+
+    try {
+      const cRes = await axios.get('/api/admin/store/product/coupon/list', { params: { product_id: id } })
+      if (cRes.data && cRes.data.code === 200) {
+        selectedCoupons.value = (cRes.data.data || []).map(it => ({
+          issueCouponId: it.issueCouponId,
+          title: it.title
+        }))
+      } else {
+        selectedCoupons.value = []
+      }
+    } catch (e) {
+      selectedCoupons.value = []
     }
   }
 }
@@ -1420,7 +1533,6 @@ const handleAdd = () => {
     isLimit: 0,
     limitType: 1,
     limitNum: 0,
-    couponIds: '',
     keyword: '',
     storeInfo: '',
     shareContent: '',
@@ -1450,6 +1562,7 @@ const handleAdd = () => {
   specTableData.value = []
   customFormOpen.value = false
   specParams.value = []
+  selectedCoupons.value = []
   replyTableData.value = []
   detailActiveTab.value = 'basic'
   detailDrawerVisible.value = true
@@ -1614,6 +1727,11 @@ const handleSaveProduct = async () => {
       }))
       await axios.post('/api/admin/store/product/attr_value/save', specPayload)
     }
+
+    await axios.post('/api/admin/store/product/coupon/save', {
+      productId,
+      couponIds: selectedCoupons.value.map(c => Number(c.issueCouponId)).filter(v => Number.isFinite(v) && v > 0)
+    })
     
     ElMessage.success(isEdit ? '商品编辑成功' : '商品发布成功')
     detailDrawerVisible.value = false
